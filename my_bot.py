@@ -4,7 +4,7 @@ import os
 import asyncio
 
 # Вставь свой токен
-TOKEN = "7990352253:AAGgE_fSAQKhjRQ7GeL_6jKp123X8YJcQVw"
+TOKEN = "BOT_TOKEN"
 ADMIN_USERNAME = "squezzzzzz"
 
 # --- Плавное удаление сообщений ---
