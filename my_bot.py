@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 import os
 
@@ -149,6 +149,9 @@ async def catalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup
         )
 
+    # Сохраняем выбранный индекс 0 по умолчанию
+    context.user_data['selected_item'] = catalog_items[0]
+
     try:
         await msg.delete()
     except:
@@ -161,17 +164,22 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "start":
         await start(update, context)
+
     elif query.data == "myoffer":
         await myoffer(update, context)
+
     elif query.data == "help":
         await help_command(update, context)
+
     elif query.data == "catalog":
         await catalog(update, context)
-    elif query.data == "pay":
-        await query.message.reply_text("Готово! Данная услуга вам обойдется в один очень долгий и очень страстный поцелуй с объятиями)")
+
     elif query.data.startswith("catalog_"):
         index = int(query.data.split("_")[1])
         item = catalog_items[index]
+
+        # Обновляем выбранный элемент в user_data
+        context.user_data['selected_item'] = item
 
         keyboard = [
             [InlineKeyboardButton(i["title"], callback_data=f"catalog_{idx}")]
@@ -182,9 +190,30 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         with open(item["image"], "rb") as photo:
             await query.message.edit_media(
-                media=telegram.InputMediaPhoto(media=photo, caption=item["caption"]),
+                media=InputMediaPhoto(media=photo, caption=item["caption"]),
                 reply_markup=reply_markup
             )
+
+    elif query.data == "pay":
+        # При выборе услуги показываем картинку оплаты с кнопкой "Оплатить...😏"
+        with open("pay.jpg", "rb") as photo:
+            keyboard = [[InlineKeyboardButton("Оплатить...😏", callback_data="do_pay")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.message.edit_media(
+                media=InputMediaPhoto(media=photo),
+                reply_markup=reply_markup
+            )
+
+    elif query.data == "do_pay":
+        # При нажатии кнопки "Оплатить...😏" выводим текст с ценой выбранной услуги
+        selected = context.user_data.get('selected_item')
+        if selected:
+            price_line = selected["caption"].split("\n")[-1]  # Получаем строку с ценой
+            await query.message.edit_text(
+                text=f"Готово! Данная услуга вам обойдется в {price_line}"
+            )
+        else:
+            await query.message.edit_text("Ошибка: услуга не выбрана.")
 
 # --- Обработка текстовых сообщений ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
