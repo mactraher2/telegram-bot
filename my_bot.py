@@ -17,7 +17,42 @@ catalog_items = [
         "title": "🎬 Кино",
         "image": "cinema.jpg",
         "caption": "мммм, как интересноооо\n\nЦена: 6 поцелуйчиков💋"
-    }
+    },
+    {
+        "title": "🤗 Обнимашки дома",
+        "image": "home.jpg",
+        "caption": "Це шо ТаймСквэр\n\nЦена: 3 поцелуйчика💋"
+    },
+    {
+        "title": "🍽️ Пойти в ррресторранн",
+        "image": "restaurant.jpg",
+        "caption": "ну ты губу то раскатала бом-бом\n(по особым случаям)\n\nЦена: 10 поцелуйчиков💋"
+    },
+    {
+        "title": "🎭 Театр",
+        "image": "teatr.jpg",
+        "caption": "вам кофе с сахаром или с моими ....\n(по особым случаям)\n\nЦена: 15 поцелуйчиков💋"
+    },
+    {
+        "title": "🧹 Уборка дома",
+        "image": "clining.jpg",
+        "caption": "хи-хи-хи-ХА-ХА-ХА-ХА\n\nЦена: БЕСПЛАТНО"
+    },
+    {
+        "title": "🚴 Покатушки на великах",
+        "image": "bicycle.jpg",
+        "caption": "А начиналось так красииивааа....\n\nЦена: 5 поцелуйчиков💋"
+    },
+    {
+        "title": "🐠 Музеи, океанариумы, зоопарки, гончарка",
+        "image": "zoo.jpg",
+        "caption": "жизнь это вызов - я бы пропустил звонок\n(по особым случаям)\n\nЦена: 15 поцелуйчиков💋"
+    },
+    {
+        "title": "🍾 Приготовлю завтрак",
+        "image": "breakfast.jpg",
+        "caption": "я в прошлой жизни тот еще повар😎\n(по особым случаям)\n\nЦена: 15 поцелуйчиков💋"
+    },
 ]
 
 # --- Команда /start ---
@@ -36,7 +71,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo=photo,
             caption="""У-У-У-А-А-А-А-А-А🦍\nДоброе утро Мартышка! Вас приветствует ГИД по развлечениям!
 
-Сегодня (и навсегда) с вами основатель данного сервиса, спонсор ваших капризов, человек исполняющий желания,  амбассадор фирмы "Ммммативация есть всигдаааааааааа!", величайшииииий...... Эррррболллллл!🦁
+Сегодня (и навсегда) с вами основатель данного сервиса, спонсор ваших капризов, человек исполняющий желания,  амбассадор фирмы \"Ммммативация есть всигдаааааааааа!\", величайшииииий...... Эррррболллллл!🦁
 
 В нашем сервисе вы можете выбрать чего вы желаете сегодня и как хотите провести день! Скорее торопитесь перейти к нашему каталогу! Ваш выбор будет неограничен! Если вы не найдете чего искали, выбирайте команду /myoffer и напишите чего вы хотите!
 
@@ -102,13 +137,17 @@ async def catalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton(item["title"], callback_data=f"catalog_{i}")]
         for i, item in enumerate(catalog_items)
     ]
+    keyboard.append([InlineKeyboardButton("ЭТО МОЙ ВЫБОР", callback_data="pay")])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await context.bot.send_message(
-        chat_id=msg.chat_id,
-        text="Выберите одно из развлечений ниже:",
-        reply_markup=reply_markup
-    )
+    item = catalog_items[0]
+    with open(item["image"], "rb") as photo:
+        await context.bot.send_photo(
+            chat_id=msg.chat_id,
+            photo=photo,
+            caption=item["caption"],
+            reply_markup=reply_markup
+        )
 
     try:
         await msg.delete()
@@ -134,16 +173,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         index = int(query.data.split("_")[1])
         item = catalog_items[index]
 
-        with open(item["image"], "rb") as photo:
-            await query.message.reply_photo(
-                photo=photo,
-                caption=item["caption"]
-            )
+        keyboard = [
+            [InlineKeyboardButton(i["title"], callback_data=f"catalog_{idx}")]
+            for idx, i in enumerate(catalog_items)
+        ]
+        keyboard.append([InlineKeyboardButton("ЭТО МОЙ ВЫБОР", callback_data="pay")])
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-        try:
-            await query.message.delete()
-        except:
-            pass
+        with open(item["image"], "rb") as photo:
+            await query.message.edit_media(
+                media=telegram.InputMediaPhoto(media=photo, caption=item["caption"]),
+                reply_markup=reply_markup
+            )
 
 # --- Обработка текстовых сообщений ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
