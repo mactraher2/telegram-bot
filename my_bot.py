@@ -123,6 +123,7 @@ async def myoffer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     context.user_data['awaiting_offer'] = True
+    context.user_data['last_command'] = 'myoffer'
 
     try:
         await msg.delete()
@@ -150,7 +151,7 @@ async def catalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     context.user_data['selected_item'] = catalog_items[0]
-    context.user_data['payment_source'] = 'catalog'  # По умолчанию для каталога
+    context.user_data['last_command'] = 'catalog'
 
     try:
         await msg.delete()
@@ -178,7 +179,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         index = int(query.data.split("_")[1])
         item = catalog_items[index]
         context.user_data['selected_item'] = item
-        context.user_data['payment_source'] = 'catalog'  # Источник - каталог
+																							
 
         keyboard = [
             [InlineKeyboardButton(i["title"], callback_data=f"catalog_{idx}")]
@@ -194,8 +195,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
     elif query.data == "pay":
-        # Узнаём источник оплаты, по умолчанию считаем myoffer
-        source = context.user_data.get('payment_source', 'myoffer')
+																									
+																   
 
         with open("pay.jpg", "rb") as photo:
             keyboard = [[InlineKeyboardButton("Оплатить...😏", callback_data="do_pay")]]
@@ -206,40 +207,42 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
     elif query.data == "do_pay":
-        source = context.user_data.get('payment_source', 'myoffer')
-        user = update.effective_user
-															
-										  
-																																																  
-			 
+        selected = context.user_data.get('selected_item')
+        if selected:
+            price_line = selected["caption"].split("\n")[-1]
 
-        if source == 'catalog':
-            selected = context.user_data.get('selected_item')
-            if selected:
-                price_line = selected["caption"].split("\n")[-1]
-                await query.message.edit_text(
+            # Удаляем сообщение с кнопкой "Оплатить..."
+            await query.message.delete()
+
+            # В зависимости от того, откуда пришли, выводим разный текст
+            if context.user_data.get('last_command') == 'catalog':
+                await context.bot.send_message(
+																
+                    chat_id=query.message.chat_id,
                     text=f"Готово! Данная услуга вам обойдется в {price_line}"
                 )
-                await context.bot.send_message(
-                    chat_id=f"@{ADMIN_USERNAME}",
-                    text=f"📩 Новый выбор из каталога!\n"
-                         f"Пользователь: @{user.username or user.id}\n"
-                         f"Выбрал: {selected['title']}\n"
-                         f"{price_line}"
-                )
             else:
-                await query.message.edit_text("Ошибка: услуга не выбрана.")
-
-        else:  # myoffer
-            await query.message.edit_text(
-                text="Готово! Данная услуга вам обойдется в один очень долгий и очень страстный поцелуй с объятиями😏"
-            )
-            user_offer = context.user_data.get('last_offer_text')
-            if user_offer:
                 await context.bot.send_message(
-                    chat_id=f"@{ADMIN_USERNAME}",
-                    text=f"📩 Новое желание от @{user.username or user.id}:\n{user_offer}"
+                    chat_id=query.message.chat_id,
+                    text="Готово! Данная услуга вам обойдется в один очень долгий и очень страстный поцелуй с объятиями😏"
+																				   
+															   
+										
                 )
+				 
+																								
+
+            user = update.effective_user
+            await context.bot.send_message(
+                chat_id=f"@{ADMIN_USERNAME}",
+                text=f"📩 Новый выбор!\nПользователь: @{user.username or user.id}\nВыбрал: {selected['title']}\n{price_line}"
+            )
+        else:
+            await query.message.edit_text("Ошибка: услуга не выбрана.")
+											   
+												 
+																										  
+				 
 
 # --- Обработка текста ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -257,7 +260,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         with open("pay.jpg", "rb") as photo:
-            keyboard = [[InlineKeyboardButton("Оплатить...😏", callback_data="pay")]]
+            keyboard = [[InlineKeyboardButton("Оплатить...😏", callback_data="do_pay")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await context.bot.send_photo(
                 chat_id=update.effective_chat.id,
@@ -266,8 +269,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         context.user_data['awaiting_offer'] = False
-        context.user_data['last_offer_text'] = user_text
-        context.user_data['payment_source'] = 'myoffer'  # Отмечаем оплату как myoffer
+        context.user_data['last_command'] = 'myoffer'
+																									   
 
 # --- Запуск ---
 app = ApplicationBuilder().token(TOKEN).build()
