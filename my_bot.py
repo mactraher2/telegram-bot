@@ -149,7 +149,6 @@ async def catalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup
         )
 
-    # Сохраняем выбранный индекс 0 по умолчанию
     context.user_data['selected_item'] = catalog_items[0]
 
     try:
@@ -157,7 +156,7 @@ async def catalog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
-# --- Обработка нажатий кнопок ---
+# --- Обработка кнопок ---
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -177,8 +176,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data.startswith("catalog_"):
         index = int(query.data.split("_")[1])
         item = catalog_items[index]
-
-        # Обновляем выбранный элемент в user_data
         context.user_data['selected_item'] = item
 
         keyboard = [
@@ -195,7 +192,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
     elif query.data == "pay":
-        # При выборе услуги показываем картинку оплаты с кнопкой "Оплатить...😏"
         with open("pay.jpg", "rb") as photo:
             keyboard = [[InlineKeyboardButton("Оплатить...😏", callback_data="do_pay")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -205,17 +201,25 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
     elif query.data == "do_pay":
-        # При нажатии кнопки "Оплатить...😏" выводим текст с ценой выбранной услуги
         selected = context.user_data.get('selected_item')
         if selected:
-            price_line = selected["caption"].split("\n")[-1]  # Получаем строку с ценой
+            price_line = selected["caption"].split("\n")[-1]
             await query.message.edit_text(
-                text=f"Готово! Данная услуга вам обойдется в {price_line}"
+                text="Готово! Данная услуга вам обойдется в один очень долгий и очень страстный поцелуй с объятиями"
+            )
+
+            user = update.effective_user
+            await context.bot.send_message(
+                chat_id=f"@{ADMIN_USERNAME}",
+                text=f"📩 Новый выбор из каталога!\n"
+                     f"Пользователь: @{user.username or user.id}\n"
+                     f"Выбрал: {selected['title']}\n"
+                     f"{price_line}"
             )
         else:
             await query.message.edit_text("Ошибка: услуга не выбрана.")
 
-# --- Обработка текстовых сообщений ---
+# --- Обработка текста ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('awaiting_offer'):
         user_text = update.message.text
@@ -241,7 +245,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data['awaiting_offer'] = False
 
-# --- Запуск бота ---
+# --- Запуск ---
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
